@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Testes Automatizados
+    name: Testes Automatizados e Build
     runs-on: ubuntu-latest
 
     steps:
@@ -26,3 +26,35 @@ jobs:
 
       - name: Executar testes
         run: npm test
+
+      - name: Criar arquivo .env
+        run: echo "EXPO_PUBLIC_TMDB_KEY=${{ secrets.EXPO_PUBLIC_TMDB_KEY }}" > .env
+
+      - name: Build para Web
+        run: npx expo export --platform web --output-dir dist
+      
+      - name: Criar .nojekyll
+        run: touch dist/.nojekyll
+
+      - name: Upload do artefato
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy no GitHub Pages
+    needs: test
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
