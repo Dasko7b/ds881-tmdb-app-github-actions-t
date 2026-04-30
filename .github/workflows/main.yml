@@ -87,7 +87,7 @@ jobs:
         run: echo "EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" > .env
 
       - name: Prebuild (Geração de Código Nativo )
-        run: npx expo prebuild --platform android --no-interactive
+        run: npx expo prebuild --platform android
 
       - name: Compilação Gradle (assembleRelease)
         run: |
