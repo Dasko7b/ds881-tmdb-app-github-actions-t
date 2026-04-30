@@ -101,25 +101,25 @@ jobs:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
 
-    create-release:
-      name: Publicar GitHub Release
-      needs: build-android
-      runs-on: ubuntu-latest
+  create-release:
+    name: Publicar GitHub Release
+    needs: build-android
+    runs-on: ubuntu-latest
 
-      permissions:
-      contents: write
+    permissions:
+    contents: write
 
-      steps:
-      - name: Download do artefato APK
-        uses: actions/download-artifact@v4
-        with:
-          name: app-release-apk
-          path: ./apk-dir
+    steps:
+    - name: Download do artefato APK
+      uses: actions/download-artifact@v4
+      with:
+      name: app-release-apk
+      path: ./apk-dir
 
-      - name: Criar GitHub Release e Anexar APK
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
-          files: ./apk-dir/app-release.apk
-          generate_release_notes: true
+    - name: Criar GitHub Release e Anexar APK
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Release v${{ github.run_number }}
+        files: ./apk-dir/app-release.apk
+        generate_release_notes: true
