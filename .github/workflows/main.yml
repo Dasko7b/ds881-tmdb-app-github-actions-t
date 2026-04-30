@@ -58,3 +58,68 @@ jobs:
       - name: Deploy
         id: deploy
         uses: actions/deploy-pages@v4
+  
+  build-android:
+    name: Build Android (APK)
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 
+        uses: actions/setup-java@v4
+        with:
+           java-version: '17'
+           distribution: 'temurin'
+
+      - name: Configurar Node.js 
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+        
+      - name: Criar arquivo .env
+        run: echo "EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" > .env
+
+      - name: Prebuild (Geração de Código Nativo )
+        run: npx expo prebuild --platform android
+
+      - name: Compilação Gradle (assembleRelease)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      
+      - name: Upload do artefato APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+
+    create-release:
+      name: Publicar GitHub Release
+      needs: build-android
+      runs-on: ubuntu-latest
+
+      permissions:
+      contents: write
+
+      steps:
+      - name: Download do artefato APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-apk
+          path: ./apk-dir
+
+      - name: Criar GitHub Release e Anexar APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          files: ./apk-dir/app-release.apk
+          generate_release_notes: true
