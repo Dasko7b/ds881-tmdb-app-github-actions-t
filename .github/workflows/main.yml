@@ -113,8 +113,8 @@ jobs:
     - name: Download do artefato APK
       uses: actions/download-artifact@v4
       with:
-      name: app-release-apk
-      path: ./apk-dir
+        name: app-release-apk
+        path: ./apk-dir
 
     - name: Criar GitHub Release e Anexar APK
       uses: softprops/action-gh-release@v2
