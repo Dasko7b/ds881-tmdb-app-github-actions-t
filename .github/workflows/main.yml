@@ -150,3 +150,27 @@ jobs:
         name: Release v${{ github.run_number }}
         files: ./apk-dir/app-release.apk
         generate_release_notes: true
+
+  docker-build:
+    name: Build Docker com Tag SHA
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Extrair sha do commit
+        id: sha
+        run: echo "sha=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Build da imagem Docker
+        run: |
+          docker build \
+            --build-arg EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }} \
+            -t tmdb-app:${{ steps.sha.outputs.sha }} \
+            .
+
+      - name: Confirmar tag gerada
+        run: docker images tmdb-app
