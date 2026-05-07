@@ -4,21 +4,26 @@ on:
   push:
     branches:
       - release
+  pull_request:
   workflow_dispatch:
 
 jobs:
   test:
-    name: Testes Automatizados e Build
+    name: Testes Automatizados (node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20, 24]
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js 20
+      - name: Configurar Nodejs ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       - name: Instalar dependências
@@ -27,12 +32,31 @@ jobs:
       - name: Executar testes
         run: npm test
 
+  build-web:
+    name: Build Web e upload
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar nodejs 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
       - name: Criar arquivo .env
         run: echo "EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" > .env
 
       - name: Build para Web
         run: npx expo export --platform web --output-dir dist
-      
+
       - name: Criar .nojekyll
         run: touch dist/.nojekyll
 
@@ -43,7 +67,8 @@ jobs:
 
   deploy:
     name: Deploy no GitHub Pages
-    needs: test
+    needs: build-web
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     permissions:
@@ -58,23 +83,24 @@ jobs:
       - name: Deploy
         id: deploy
         uses: actions/deploy-pages@v4
-  
+
   build-android:
     name: Build Android (APK)
     needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar JDK 
+      - name: Configurar JDK
         uses: actions/setup-java@v4
         with:
            java-version: '17'
            distribution: 'temurin'
 
-      - name: Configurar Node.js 
+      - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -82,7 +108,7 @@ jobs:
 
       - name: Instalar dependências
         run: npm ci
-        
+
       - name: Criar arquivo .env
         run: echo "EXPO_PUBLIC_TMDB_API_KEY=${{ secrets.EXPO_PUBLIC_TMDB_API_KEY }}" > .env
 
@@ -94,7 +120,7 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
-      
+
       - name: Upload do artefato APK
         uses: actions/upload-artifact@v4
         with:
@@ -104,6 +130,7 @@ jobs:
   create-release:
     name: Publicar GitHub Release
     needs: build-android
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     permissions:
